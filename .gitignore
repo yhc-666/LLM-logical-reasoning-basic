@@ -1,0 +1,9 @@
+/results
+/.claude
+/.cursor
+__pycache__/
+*.pyc
+.DS_Store
+
+# Outputs
+outputs/

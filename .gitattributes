@@ -1,0 +1,6 @@
+# Git LFS tracking for large files
+*.json filter=lfs diff=lfs merge=lfs -text
+solver_engine/src/symbolic_solvers/Prover9/bin/* filter=lfs diff=lfs merge=lfs -text
+solver_engine/src/symbolic_solvers/Prover9/provers.src/* filter=lfs diff=lfs merge=lfs -text
+solver_engine/src/symbolic_solvers/Prover9/ladr/*.a filter=lfs diff=lfs merge=lfs -text
+*.out filter=lfs diff=lfs merge=lfs -text
