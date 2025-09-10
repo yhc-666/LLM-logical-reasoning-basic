@@ -1,4 +1,4 @@
-# Official implementation of **"Adaptive Symbolic Language Selection and Translation for Enhanced Logical Reasoning"**.
+# Official implementation of **"Adaptive Translation for LLM Logical Reasoning"**.
 
 ## Overview
 
