@@ -7,10 +7,12 @@ Analyzes each logic problem and selects the most appropriate symbolic language (
 import argparse
 import json
 import os
+import random
 from tqdm import tqdm
 from typing import Dict, List
 
 from utils.llm_helper import LLMHelper
+from utils.dataset_detector import detect_dataset
 
 
 def load_data(input_file: str) -> List[Dict]:
@@ -26,14 +28,13 @@ def save_data(output_file: str, data: List[Dict]):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def substitute_prompt_placeholders(prompt_template: str, item: Dict, dataset: str) -> str:
+def substitute_prompt_placeholders(prompt_template: str, item: Dict) -> str:
     """
     Substitute placeholders in prompt template
     
     Args:
         prompt_template: Template with placeholders
         item: Problem item
-        dataset: Dataset name
     
     Returns:
         Filled prompt
@@ -43,6 +44,9 @@ def substitute_prompt_placeholders(prompt_template: str, item: Dict, dataset: st
     
     prompt = prompt_template.replace('${context}', context)
     prompt = prompt.replace('${question}', question)
+    
+    # Detect dataset type for this specific item
+    dataset = detect_dataset(item)
     
     if dataset == 'LogicalDeduction':
         options = item.get('options', [])
@@ -76,6 +80,7 @@ def select_sl_for_problem(llm_helper: LLMHelper, filled_prompt: str) -> Dict:
         
         # Validate result
         if isinstance(result, dict) and 'selected_sl' in result:
+            print(result['selected_sl'])
             if result['selected_sl'] not in ['LP', 'FOL', 'SAT']:
                 print(f"Warning: Invalid SL '{result['selected_sl']}', defaulting to LP")
                 result['selected_sl'] = 'LP'
@@ -96,32 +101,36 @@ def select_sl_for_problem(llm_helper: LLMHelper, filled_prompt: str) -> Dict:
 
 def main():
     parser = argparse.ArgumentParser(description='Step 1: Select Symbolic Language for logic problems')
-    parser.add_argument('--dataset', type=str, default='ProofWriter',
-                       choices=['ProntoQA', 'ProofWriter', 'LogicalDeduction'],
-                       help='Dataset name')
-    parser.add_argument('--input_file', type=str, default='data/ProofWriter/dev.json',
+    parser.add_argument('--input_file', type=str, default='data/Mixed/dev.json',
                        help='Input JSON file path')
-    parser.add_argument('--output_file', type=str, default='results/deepseek/ProofWriter/select_sl/result.json',
+    parser.add_argument('--output_file', type=str, default='results/deepseek/LogicalDeduction/random/select_sl/result.json',
                        help='Output JSON file path')
-    parser.add_argument('--sl_selection', type=str, default='SAT',
-                       choices=['adaptive', 'LP', 'FOL', 'SAT'],
-                       help='SL selection mode: adaptive (use LLM) or force specific SL for ablation')
-    parser.add_argument('--openai_api_key', type=str, default="",
+    parser.add_argument('--sl_selection', type=str, default='random',
+                       choices=['adaptive', 'random', 'LP', 'FOL', 'SAT'],
+                       help='SL selection mode: adaptive (use LLM), random (randomly assign), or force specific SL for ablation')
+    parser.add_argument('--openai_api_key', type=str, default="1785146889328074779",
                        help='OpenAI API key')
-    parser.add_argument('--openai_base_url', type=str, default="",
+    parser.add_argument('--openai_base_url', type=str, default="https://aigc.sankuai.com/v1/openai/native",
                        help='OpenAI API base URL')
-    parser.add_argument('--model', type=str, default='deepseek-chat',
-                       help='Model name (default: deepseek-chat)')
+    parser.add_argument('--model', type=str, default='gpt-4-0613', 
+                       help='Model name (default: gpt-4-0613)') 
     parser.add_argument('--temperature', type=float, default=0.0,
                        help='Temperature for generation (default: 0.0)')
     parser.add_argument('--max_tokens', type=int, default=1000,
                        help='Maximum tokens for generation (default: 1000)')
+    parser.add_argument('--random_seed', type=int, default=None,
+                       help='Random seed for reproducibility when using random SL selection')
     
     args = parser.parse_args()
     
     # Print mode information
     print(f"SL Selection Mode: {args.sl_selection}")
-    if args.sl_selection != 'adaptive':
+    if args.sl_selection == 'random':
+        print(f"Randomly assigning LP/FOL/SAT to each problem")
+        if args.random_seed is not None:
+            random.seed(args.random_seed)
+            print(f"Using random seed: {args.random_seed}")
+    elif args.sl_selection not in ['adaptive', 'random']:
         print(f"Forcing all problems to use {args.sl_selection} for ablation study")
     
     # Only load prompt template and initialize LLM if in adaptive mode
@@ -150,17 +159,20 @@ def main():
     
     os.makedirs(os.path.dirname(args.output_file) if os.path.dirname(args.output_file) else '.', exist_ok=True)
     
-    for idx, item in enumerate(tqdm(data[:10], desc="Selecting SL for problems")):
+    for idx, item in enumerate(tqdm(data, desc="Selecting SL for problems")):
         result_item = item.copy()
         
         if args.sl_selection == 'adaptive':
-            filled_prompt = substitute_prompt_placeholders(prompt_template, item, args.dataset)
+            filled_prompt = substitute_prompt_placeholders(prompt_template, item)
             
             # Select SL
             sl_result = select_sl_for_problem(llm_helper, filled_prompt)
             
             result_item['SL'] = sl_result['selected_sl']
             result_item['SL_reasoning'] = sl_result['reasoning']
+        elif args.sl_selection == 'random':
+            result_item['SL'] = random.choice(['LP', 'FOL', 'SAT'])
+            result_item['SL_reasoning'] = f"Randomly selected {result_item['SL']}"
         else:
             result_item['SL'] = args.sl_selection
             result_item['SL_reasoning'] = f"Forced to {args.sl_selection} for ablation study"

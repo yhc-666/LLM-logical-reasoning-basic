@@ -131,6 +131,15 @@ class FOL_Prover9_Program:
             if self.dataset_name == 'LogicalDeduction':
                 return self._parse_logical_deduction_program()
             
+            modified_logic_program = re.sub(r'###\s*Predicates:', 'Predicates:', self.logic_program)
+            modified_logic_program = re.sub(r'###\s*Premises:', 'Premises:', modified_logic_program)
+            modified_logic_program = re.sub(r'###\s*Conclusion:', 'Conclusion:', modified_logic_program)
+            # 移除行首的 "1. "、"2. "、"3. " 这种编号
+            modified_logic_program = re.sub(r'^\d+\.\s*', '', modified_logic_program, flags=re.MULTILINE)
+            
+            # 使用修改后的输入
+            self.logic_program = modified_logic_program
+            
             # Original parsing logic for other datasets
             # Split the string into premises and conclusion
             premises_string = self.logic_program.split("Conclusion:")[0].split("Premises:")[1].strip()
@@ -163,6 +172,16 @@ class FOL_Prover9_Program:
     def _parse_logical_deduction_program(self):
         """Parse LogicalDeduction multi-choice format separately"""
         try:
+            # 修改输入，去掉###标记
+            modified_logic_program = re.sub(r'###\s*Predicates:', 'Predicates:', self.logic_program)
+            modified_logic_program = re.sub(r'###\s*Premises:', 'Premises:', modified_logic_program)
+            modified_logic_program = re.sub(r'###\s*Conclusion:', 'Conclusion:', modified_logic_program)
+
+            # 移除行首的 "1. "、"2. "、"3. " 这种编号
+            modified_logic_program = re.sub(r'^\d+\.\s*', '', modified_logic_program, flags=re.MULTILINE)
+            
+            # 使用修改后的输入
+            self.logic_program = modified_logic_program
             # Split the string into premises and conclusion
             premises_string = self.logic_program.split("Conclusion:")[0].split("Premises:")[1].strip()
             conclusion_string = self.logic_program.split("Conclusion:")[1].strip()
@@ -557,10 +576,10 @@ Rank(watermelon, three) ::: Option E
 """
     
     
-    demo_logic_program = "Predicates:\nBird($x) ::: $x is one of the five birds.\nLeftOf($x, $y) ::: Bird $x is strictly to the left of bird $y.\nPosition($x, $n) ::: Bird $x is at position $n from the left (1-based index).\nPremises:\nBird(crow) ::: The crow.\nBird(robin) ::: The robin.\nBird(quail) ::: The quail.\nBird(blue_jay) ::: The blue jay.\nBird(falcon) ::: The falcon.\nLeftOf(robin, quail) ::: The robin is to the left of the quail.\nPosition(falcon, 3) ::: The falcon is the third from the left.\nLeftOf(crow, falcon) ::: The crow is to the left of the falcon.\nPosition(blue_jay, 1) ::: The blue jay is the leftmost.\n\u2200x \u2200y (LeftOf(x, y) \u2192 \u00acLeftOf(y, x)) ::: Left-of is asymmetric.\n\u2200x \u2200y \u2200z (LeftOf(x, y) \u2227 LeftOf(y, z) \u2192 LeftOf(x, z)) ::: Left-of is transitive.\n\u2200x \u2200n \u2200m (Position(x, n) \u2227 Position(x, m) \u2192 n = m) ::: One position per bird.\n\u2200n \u2200x \u2200y (Position(x, n) \u2227 Position(y, n) \u2192 x = y) ::: One bird per position.\n\u2200x \u2200y (LeftOf(x, y) \u2194 \u2203n \u2203m (Position(x, n) \u2227 Position(y, m) \u2227 n < m)) ::: Left-of corresponds to position ordering.\nConclusion:\nPosition(crow, 3) ::: Option A\nPosition(robin, 3) ::: Option B\nPosition(quail, 3) ::: Option C\nPosition(blue_jay, 3) ::: Option D\nPosition(falcon, 3) ::: Option E"
+    demo_logic_program = "Predicates:\nBear(x) ::: x is a bear\nCat(x) ::: x is a cat\nDog(x) ::: x is a dog\nMouse(x) ::: x is a mouse\nGreen(x) ::: x is green\nLikes(x,y) ::: x likes y\nVisits(x,y) ::: x visits y\nYoung(x) ::: x is young\nSees(x,y) ::: x sees y\nRound(x) ::: x is round\nBig(x) ::: x is big\nCold(x) ::: x is cold\nFacts:\nBear(bear) ::: The bear is green\nGreen(bear) ::: The bear is green\nLikes(bear,cat) ::: The bear likes the cat\nLikes(bear,dog) ::: The bear likes the dog\nVisits(bear,dog) ::: The bear visits the dog\nCat(cat) ::: The cat is young\nYoung(cat) ::: The cat is young\nSees(cat,bear) ::: The cat sees the bear\nSees(cat,dog) ::: The cat sees the dog\nVisits(cat,bear) ::: The cat visits the bear\nVisits(cat,mouse) ::: The cat visits the mouse\nDog(dog) ::: The dog is round\nRound(dog) ::: The dog is round\nLikes(dog,bear) ::: The dog likes the bear\nLikes(dog,mouse) ::: The dog likes the mouse\nVisits(dog,mouse) ::: The dog visits the mouse\nMouse(mouse) ::: The mouse is big\nBig(mouse) ::: The mouse is big\nCold(mouse) ::: The mouse is cold\nRound(mouse) ::: The mouse is round\nRules:\n∀x ( (Visits(x,mouse) ∧ Visits(mouse,dog)) → Cold(x) ) ::: If something visits the mouse and the mouse visits the dog then it is cold\n∀x ( Likes(x,cat) → Visits(x,dog) ) ::: If something likes the cat then it visits the dog\n∀x ( Cold(x) → Likes(x,cat) ) ::: If something is cold then it likes the cat\n∀x ( Green(x) → Sees(x,dog) ) ::: If something is green then it sees the dog\n∀x ( Likes(x,mouse) → Sees(x,cat) ) ::: If something likes the mouse then it sees the cat\n∀x ( (Green(x) ∧ Cold(x)) → Likes(x,cat) ) ::: If something is green and cold then it likes the cat\n∀x ( (Big(x) ∧ Visits(x,bear)) → Green(bear) ) ::: If something is big and it visits the bear then the bear is green\nQuery:\n¬Cold(cat) ::: The cat is not cold"
     
     # Test LogicalDeduction functionality
-    prover9_program = FOL_Prover9_Program(logic_program_logic_deduction, dataset_name='LogicalDeduction')
+    prover9_program = FOL_Prover9_Program(demo_logic_program, dataset_name='ProofWriter')
     result, error_message, reasoning = prover9_program.execute_program()
     print('LogicalDeduction Test Results:')
     print('result:', result)

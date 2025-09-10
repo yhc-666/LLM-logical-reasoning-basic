@@ -7,10 +7,12 @@ Translates each logic problem to its selected symbolic language
 import argparse
 import json
 import os
+import re 
 from tqdm import tqdm
 from typing import Dict, List
 
 from utils.llm_helper import LLMHelper
+from utils.dataset_detector import detect_dataset
 
 
 def load_data(input_file: str) -> List[Dict]:
@@ -26,17 +28,20 @@ def save_data(output_file: str, data: List[Dict]):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def get_role_description(sl: str, dataset: str) -> str:
+def get_role_description(sl: str, item: Dict) -> str:
     """
-    Get role description based on SL and dataset
+    Get role description based on SL and dataset detected from item
     
     Args:
         sl: Symbolic language (LP/FOL/SAT)
-        dataset: Dataset name (ProntoQA/ProofWriter/LogicalDeduction)
+        item: Problem item to detect dataset from
     
     Returns:
         Role description string
     """
+    # Detect dataset from item
+    dataset = detect_dataset(item)
+    
     # Role descriptions for ProntoQA/ProofWriter (from translate_config.yaml)
     if dataset in ['ProntoQA', 'ProofWriter']:
         if sl == 'LP':
@@ -68,7 +73,10 @@ def get_role_description(sl: str, dataset: str) -> str:
 
       Query:
       Shy(Alex, False)
-      ---------------"""
+      ---------------
+      Return **only** Predicates, Facts, Rules, and Query.
+      Do not include unnecessary symbols such as "**", "numbered lists (like 1., 2., 3., 4.)", " - " etc.
+      """
       
         elif sl == 'FOL':
             return """Your final task is to translate the logic problem in natural language into first-order logic formulas. The grammar of first-order logic is defined as follows:
@@ -118,7 +126,10 @@ def get_role_description(sl: str, dataset: str) -> str:
         Jokes(rina) ⊕ Unaware(rina) ::: Rina is either a
         person who jokes about being addicted to caffeine
         or is unaware that caffeine is a drug.
-        ---------------"""
+        ---------------
+        Return **only** Predicates, Premises, and Conclusion.
+        Do not include unnecessary symbols such as "**", "numbered lists (like 1., 2., 3., 4.)", " - " etc.
+        """
         
         elif sl == 'SAT':
             return """Your final task is to parse the logic problem in natural language as a SAT problem using Z3 syntax, defining declarations, constraints, and options.
@@ -174,7 +185,10 @@ def get_role_description(sl: str, dataset: str) -> str:
       # Options
       is_valid(has_attribute(Charlie, kind) == True) ::: Charlie is kind is True (A).
       is_unsat(has_attribute(Charlie, kind) == True) ::: Charlie is kind is False (B).
-      ---------------"""
+      ---------------
+      Return **only** # Declarations, # Constraints, # Options.
+      Do not include unnecessary symbols such as "**", "numbered lists (like 1., 2., 3., 4.)", " - " etc.
+      """
     
     # Role descriptions for LogicalDeduction (from logideduct_translate_config.yaml)
     elif dataset == 'LogicalDeduction':
@@ -228,7 +242,11 @@ def get_role_description(sl: str, dataset: str) -> str:
       SecondFromRight(yellow, True)  ::: Option C
       SecondFromRight(blue,   True)  ::: Option D
       SecondFromRight(red,    True)  ::: Option E
-      ---------------"""
+      ---------------
+      Return **only** Predicates, Facts, Rules, and Query.
+      Do not include unnecessary symbols such as "**", "numbered lists (like 1., 2., 3., 4.)", " - " etc.
+      """
+    
       
         elif sl == 'FOL':
             return """Task Description: Given a problem description and a question. The task is to parse the problem and the question into first-order logic formulas. The grammar of first-order logic is defined as follows:
@@ -286,7 +304,10 @@ def get_role_description(sl: str, dataset: str) -> str:
         Rank(plums, three) ::: Option C
         Rank(pears, three) ::: Option D
         Rank(watermelon, three) ::: Option E
-        ---------------"""
+        ---------------
+        Return **only** Predicates, Premises, and Conclusion.
+        Do not include unnecessary symbols such as "**", "numbered lists (like 1., 2., 3., 4.)", " - " etc.
+        """
         
         elif sl == 'SAT':
             return """Task Description: You are given a problem description.
@@ -337,22 +358,27 @@ def get_role_description(sl: str, dataset: str) -> str:
       is_valid(pos(Yellow) == 4)  ::: C) The yellow book is the second from the right.
       is_valid(pos(Blue) == 4)  ::: D) The blue book is the second from the right.
       is_valid(pos(Red) == 4)  ::: E) The red book is the second from the right.
-      ---------------"""
+      ---------------
+      Return **only** # Declarations, # Constraints, # Options.
+      Do not include unnecessary symbols such as "**", "numbered lists (like 1., 2., 3., 4.)", " - " etc.
+      """
     
     return ""
 
 
 # COMPLETE PROMPT TEMPLATE
-def build_complete_prompt_template(dataset: str) -> str:
+def build_complete_prompt_template(item: Dict) -> str:
     """
-    Build complete prompt template with placeholders
+    Build complete prompt template with placeholders based on detected dataset
     
     Args:
-        dataset: Dataset name
+        item: Problem item to detect dataset from
     
     Returns:
         Complete prompt template string
     """
+    dataset = detect_dataset(item)
+    
     if dataset == 'LogicalDeduction':
         # For LogicalDeduction, include options
         return """You are given a logic problem including a context and a question as follows:
@@ -360,24 +386,14 @@ Context: ${context}
 Question: ${question}
 Options: ${options}
 
-${role_description}
-
-After discussion, now you need to give your final output.
-Please ensure that the output format has no syntax error, such as unclosed parentheses, etc.
-Return **only** Predicates, Facts, Rules, and Query (for LP) / Predicates, Premises, and Conclusion (for FOL) / # Declarations, # Constraints, # Options (for SAT).
-Do not include unnecessary symbols such as "**", "1.", " - " etc."""
+${role_description}"""
     else:
         # For ProntoQA and ProofWriter
         return """You are given a logic problem in natural language including a context and a question as follows:
 Context: ${context}
 Question: ${question}
 
-${role_description}
-
-After discussion, now you need to give your final output.
-Please ensure that the output format has no syntax error, such as unclosed parentheses, etc.
-Return **only** Predicates, Facts, Rules, and Query (for LP) / Predicates, Premises, and Conclusion (for FOL) / # Declarations, # Constraints, # Options (for SAT).
-Do not include unnecessary symbols such as "**", "1.", " - " etc."""
+${role_description}"""
 
 
 def substitute_placeholders(template: str, item: Dict, role_description: str) -> str:
@@ -411,7 +427,7 @@ def substitute_placeholders(template: str, item: Dict, role_description: str) ->
     return result
 
 
-def translate_problem(llm_helper: LLMHelper, item: Dict, sl: str, dataset: str) -> str:
+def translate_problem(llm_helper: LLMHelper, item: Dict, sl: str) -> str:
     """
     Translate a single problem to symbolic language using complete prompt template
     
@@ -419,14 +435,13 @@ def translate_problem(llm_helper: LLMHelper, item: Dict, sl: str, dataset: str) 
         llm_helper: LLM helper instance
         item: Problem item with context, question, options
         sl: Target symbolic language (LP/FOL/SAT)
-        dataset: Dataset name
     
     Returns:
         Translation in symbolic language
     """
-    role_description = get_role_description(sl, dataset)
-    
-    prompt_template = build_complete_prompt_template(dataset)
+    # Get role description and prompt template based on detected dataset
+    role_description = get_role_description(sl, item)
+    prompt_template = build_complete_prompt_template(item)
     
     filled_prompt = substitute_placeholders(prompt_template, item, role_description)
     
@@ -438,8 +453,12 @@ def translate_problem(llm_helper: LLMHelper, item: Dict, sl: str, dataset: str) 
             user_prompt=filled_prompt,
             return_json=False
         )
+        cleaned_output = translation.strip()
+        cleaned_output = re.sub(r"\n+", "\n", cleaned_output)
+        cleaned_output = re.sub(r"\n-", "\n", cleaned_output) 
+        cleaned_output = cleaned_output.replace("**", "")
         
-        return translation.strip()
+        return cleaned_output.strip()
         
     except Exception as e:
         print(f"Error in translation: {e}")
@@ -448,19 +467,16 @@ def translate_problem(llm_helper: LLMHelper, item: Dict, sl: str, dataset: str) 
 
 def main():
     parser = argparse.ArgumentParser(description='Step 2: Translate logic problems to selected symbolic language')
-    parser.add_argument('--dataset', type=str, default='ProofWriter',
-                       choices=['ProntoQA', 'ProofWriter', 'LogicalDeduction'],
-                       help='Dataset name')
-    parser.add_argument('--input_file', type=str, default='results/deepseek/ProofWriter/select_sl/result.json',
+    parser.add_argument('--input_file', type=str, default='results/deepseek/LogicalDeduction/random/select_sl/result.json',
                        help='Input JSON file path (from step 1)')
-    parser.add_argument('--output_file', type=str, default='results/deepseek/ProofWriter/translation/result.json',
+    parser.add_argument('--output_file', type=str, default='results/deepseek/LogicalDeduction/random/translation/result.json',
                        help='Output JSON file path')
-    parser.add_argument('--openai_api_key', type=str, default='',
+    parser.add_argument('--openai_api_key', type=str, default='sk-b2f85d9829f343cd909e5f7ed4d50bd4',
                        help='OpenAI API key')
-    parser.add_argument('--openai_base_url', type=str, default='',
+    parser.add_argument('--openai_base_url', type=str, default='https://api.deepseek.com/v1',
                        help='OpenAI API base URL')
-    parser.add_argument('--model', type=str, default='deepseek-chat',
-                       help='Model name (default: gpt-4)')
+    parser.add_argument('--model', type=str, default='deepseek-chat', # deepseek-chat, gpt-4-0613
+                       help='Model name')
     parser.add_argument('--temperature', type=float, default=0.0,
                        help='Temperature for generation (default: 0.0)')
     parser.add_argument('--max_tokens', type=int, default=4000,
@@ -496,9 +512,9 @@ def main():
             continue
         
         sl = item['SL']
-        sl_counts[sl] += 1
+        sl_counts[sl] += 1 
         
-        translation = translate_problem(llm_helper, item, sl, args.dataset)
+        translation = translate_problem(llm_helper, item, sl)
         
         result_item = item.copy()
         result_item['translation'] = {sl: translation}

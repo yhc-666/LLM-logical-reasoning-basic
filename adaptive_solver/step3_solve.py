@@ -17,10 +17,14 @@ solver_engine_path = os.path.join(
     'solver_engine', 'src'
 )
 sys.path.insert(0, solver_engine_path)
-
+ 
 from symbolic_solvers.pyke_solver.pyke_solver import Pyke_Program
 from symbolic_solvers.fol_solver.prover9_solver import FOL_Prover9_Program
 from symbolic_solvers.z3_solver.sat_problem_solver import LSAT_Z3_Program
+
+# Import dataset detector
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.dataset_detector import detect_dataset
 
 
 SOLVER_CLASSES = {
@@ -43,19 +47,22 @@ def save_data(output_file: str, data: List[Dict]):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def execute_solver(sl: str, translation: str, dataset_name: str) -> Tuple[str, str, str, str]:
+def execute_solver(sl: str, translation: str, item: Dict) -> Tuple[str, str, str, str]:
     """
     Execute symbolic solver for a problem
     
     Args:
         sl: Symbolic language (LP/FOL/SAT)
         translation: Translation in symbolic language
-        dataset_name: Dataset name for solver configuration
+        item: Problem item to detect dataset from
     
     Returns:
         Tuple of (answer, status_code, error_message, reasoning)
     """
     try:
+        # Detect dataset from item
+        dataset_name = detect_dataset(item)
+        
         solver_class = SOLVER_CLASSES[sl]
         program = solver_class(translation, dataset_name)
         
@@ -103,12 +110,9 @@ def get_gold_answer(item: Dict) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description='Step 3: Solve problems using symbolic solvers')
-    parser.add_argument('--dataset', type=str, default='ProofWriter',
-                       choices=['ProntoQA', 'ProofWriter', 'LogicalDeduction'],
-                       help='Dataset name')
-    parser.add_argument('--input_file', type=str, default='results/deepseek/ProofWriter/translation/result.json',
+    parser.add_argument('--input_file', type=str, default='results/deepseek/LogicalDeduction/random/translation/result.json', # Adaptive/FOL/LP/SAT
                        help='Input JSON file path (from step 2)')
-    parser.add_argument('--output_file', type=str, default='results/deepseek/ProofWriter/solve/result.json',
+    parser.add_argument('--output_file', type=str, default='results/deepseek/LogicalDeduction/random/solve/result.json',
                        help='Output JSON file path')
     
     args = parser.parse_args()
@@ -146,7 +150,7 @@ def main():
         
         # Execute solver
         answer, status_code, error_message, reasoning = execute_solver(
-            sl, translation, args.dataset
+            sl, translation, item
         )
         
         stats[sl][status_code] += 1
