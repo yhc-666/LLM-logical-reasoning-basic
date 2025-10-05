@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Step 4: Evaluate Results
-Evaluates the performance of the adaptive solver system
+Step 3: Evaluate Results
+Evaluates the performance of the solver system
 """
 
 import argparse
@@ -70,7 +70,6 @@ def evaluate_results(data: List[Dict]) -> Dict:
     # Track performance by dataset
     dataset_performance = {}
     
-    # Track solver status
     status_counts = {
         'success': 0,
         'parsing error': 0,
@@ -78,7 +77,6 @@ def evaluate_results(data: List[Dict]) -> Dict:
         'no translation': 0,
     }
     
-    # Evaluate each item
     for item in data:
         gold = normalize_answer(item.get('gold_answer', ''))
         predicted = normalize_answer(item.get('final_answer', ''))
@@ -173,42 +171,7 @@ def format_evaluation_report(evaluation: Dict) -> str:
     report.append(f"Correct predictions: {evaluation['correct']}")
     report.append(f"Overall accuracy: {evaluation['accuracy']:.2f}%")
     report.append("")
-    
-    # Performance by Dataset (if mixed dataset)
-    if 'dataset_performance' in evaluation and len(evaluation['dataset_performance']) > 0:
-        report.append("PERFORMANCE BY DATASET:")
-        report.append("-" * 30)
-        for dataset in sorted(evaluation['dataset_performance'].keys()):
-            perf = evaluation['dataset_performance'][dataset]
-            acc = evaluation['dataset_accuracies'][dataset]
-            report.append(f"{dataset}:")
-            report.append(f"  Problems: {perf['total']}")
-            report.append(f"  Correct: {perf['correct']}")
-            report.append(f"  Accuracy: {acc:.2f}%")
-            
-            if perf['by_sl']:
-                report.append(f"  By SL:")
-                for sl in sorted(perf['by_sl'].keys()):
-                    sl_perf = perf['by_sl'][sl]
-                    if sl_perf['total'] > 0:
-                        sl_acc = sl_perf['correct'] / sl_perf['total'] * 100
-                        report.append(f"    {sl}: {sl_perf['correct']}/{sl_perf['total']} ({sl_acc:.1f}%)")
-        report.append("")
-    
-    # Performance by SL
-    report.append("PERFORMANCE BY SYMBOLIC LANGUAGE:")
-    report.append("-" * 30)
-    for sl in ['LP', 'FOL', 'SAT']:
-        perf = evaluation['sl_performance'][sl]
-        acc = evaluation['sl_accuracies'][sl]
-        if perf['total'] > 0:
-            report.append(f"{sl}:")
-            report.append(f"  Problems: {perf['total']}")
-            report.append(f"  Correct: {perf['correct']}")
-            report.append(f"  Accuracy: {acc:.2f}%")
-    report.append("")
-    
-    # Solver status distribution
+
     report.append("SOLVER STATUS DISTRIBUTION:")
     report.append("-" * 30)
     for status, count in evaluation['status_counts'].items():
@@ -222,10 +185,10 @@ def format_evaluation_report(evaluation: Dict) -> str:
 
  
 def main():
-    parser = argparse.ArgumentParser(description='Step 4: Evaluate adaptive solver results')
-    parser.add_argument('--input_file', type=str, default='results/deepseek/LogicalDeduction/random/solve/result.json', # ProofWriter/LogicalDeduction/ProntoQA
-                       help='Input JSON file path (from step 3)')
-    parser.add_argument('--output_file', type=str, default='results/deepseek/LogicalDeduction/random/final/result.txt', # Adaptive
+    parser = argparse.ArgumentParser(description='Step 3: Evaluate solver results')
+    parser.add_argument('--input_file', type=str, default='results/deepseek/solve/result.json',
+                       help='Input JSON file path (from step 2)')
+    parser.add_argument('--output_file', type=str, default='results/deepseek/evaluation/result.txt',
                        help='Output evaluation report file path')
     parser.add_argument('--save_detailed',default=True,
                        help='Save detailed results with correctness flags')

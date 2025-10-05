@@ -75,37 +75,18 @@ python adaptive_solver/step4_evaluate.py \
 
 ## Datasets
 
-| Dataset | Size | Task Type | Primary Challenge |
-|---------|------|-----------|-------------------|
-| **ProofWriter** | 600 | Deductive Reasoning | Multi-hop inference chains |
-| **ProntoQA** | 500 | Categorical Logic | Hierarchical taxonomies |
-| **LogicalDeduction** | 300 | Constraint Satisfaction | Spatial/temporal ordering |
+| Dataset | Size |
+|---------|------|
+| **ProofWriter** | 600 |
+| **ProntoQA** | 500 |
+| **LogicalDeduction** | 300 |
 
-## Symbolic Languages
-
-| Language | Solver | Best For |
-|----------|--------|----------|
-| **Logic Programming (LP)** | Pyke | Rule-based reasoning, hierarchies |
-| **First-Order Logic (FOL)** | Prover9 | Quantified statements, relations |
-| **SAT** | Z3 | Boolean constraints, arrangements |
-
-
-
-## Citation
-
-```bibtex
-@article{adaptive-sl-2025,
-  title={Adaptive Symbolic Language Selection and Translation for Enhanced Logical Reasoning},
-  author={[Authors]},
-  journal={arXiv preprint},
-  year={2025}
-}
+### ProofWriter Download with Depth 0-5
+```bash
+python data/dataset_download.py
 ```
 
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
+We thank the developers of LogicLM for their excellent symbolic reasoning tools.
 
-We thank the developers of Pyke, Prover9, and Z3 for their excellent symbolic reasoning tools.

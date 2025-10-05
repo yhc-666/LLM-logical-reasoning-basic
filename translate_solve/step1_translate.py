@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Step 2: Translate to Selected Symbolic Language
-Translates each logic problem to its selected symbolic language
+Step 1: Translate to Selected Symbolic Language
+Translates each logic problem to a specified symbolic language
 """
 
 import argparse
 import json
 import os
-import re 
+import re
 from tqdm import tqdm
 from typing import Dict, List
 
@@ -466,12 +466,15 @@ def translate_problem(llm_helper: LLMHelper, item: Dict, sl: str) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Step 2: Translate logic problems to selected symbolic language')
-    parser.add_argument('--input_file', type=str, default='results/deepseek/LogicalDeduction/random/select_sl/result.json',
-                       help='Input JSON file path (from step 1)')
-    parser.add_argument('--output_file', type=str, default='results/deepseek/LogicalDeduction/random/translation/result.json',
+    parser = argparse.ArgumentParser(description='Step 1: Translate logic problems to selected symbolic language')
+    parser.add_argument('--input_file', type=str, default='data/LogicalDeduction/dev.json',
+                       help='Input JSON file path')
+    parser.add_argument('--output_file', type=str, default='results/deepseek/translation/result.json',
                        help='Output JSON file path')
-    parser.add_argument('--openai_api_key', type=str, default='sk-b2f85d9829f343cd909e5f7ed4d50bd4',
+    parser.add_argument('--sl_selection', type=str, default='LP',
+                       choices=['LP', 'FOL', 'SAT'],
+                       help='Symbolic language to use for all problems (LP/FOL/SAT)')
+    parser.add_argument('--openai_api_key', type=str, default='sk-81c7577b681e483dbbb2b5e466db3688',
                        help='OpenAI API key')
     parser.add_argument('--openai_base_url', type=str, default='https://api.deepseek.com/v1',
                        help='OpenAI API base URL')
@@ -495,35 +498,28 @@ def main():
     print(f"Loading data from {args.input_file}...")
     data = load_data(args.input_file)
     print(f"Loaded {len(data)} problems")
-    
-    missing_sl = [i for i, item in enumerate(data) if 'SL' not in item]
-    if missing_sl:
-        print(f"Warning: {len(missing_sl)} items missing SL field. They will be skipped.")
-    
+    print(f"Using symbolic language: {args.sl_selection}")
+
     results = []
     translation_stats = {'success': 0, 'failed': 0}
-    sl_counts = {'LP': 0, 'FOL': 0, 'SAT': 0}
-    
+
     os.makedirs(os.path.dirname(args.output_file) if os.path.dirname(args.output_file) else '.', exist_ok=True)
-    
+
     for item in tqdm(data, desc="Translating problems"):
-        if 'SL' not in item:
-            print(f"Skipping item {item.get('id', 'unknown')}: No SL field")
-            continue
-        
-        sl = item['SL']
-        sl_counts[sl] += 1 
-        
+        # Add the selected SL to the item
+        sl = args.sl_selection
+
         translation = translate_problem(llm_helper, item, sl)
-        
+
         result_item = item.copy()
+        result_item['SL'] = sl  # Add SL field for compatibility with downstream steps
         result_item['translation'] = {sl: translation}
-        
+
         if "Translation failed" in translation:
             translation_stats['failed'] += 1
         else:
             translation_stats['success'] += 1
-        
+
         results.append(result_item)
         
         # Save results after each sample (overwrite the file)
@@ -535,12 +531,10 @@ def main():
     
     print("\n=== Translation Statistics ===")
     print(f"Total problems processed: {len(results)}")
+    print(f"Symbolic language used: {args.sl_selection}")
     print(f"Successful translations: {translation_stats['success']}")
     print(f"Failed translations: {translation_stats['failed']}")
-    print("\nSL distribution:")
-    for sl, count in sl_counts.items():
-        print(f"  {sl}: {count}")
-    
+
     print(f"\nResults saved to {args.output_file}")
 
 

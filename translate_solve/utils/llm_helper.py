@@ -8,7 +8,6 @@ import sys
 import json
 from typing import Dict, Optional
 
-# Add project root to path to import agentverse
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(project_root)
 

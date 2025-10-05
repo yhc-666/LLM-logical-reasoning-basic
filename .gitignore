@@ -9,4 +9,4 @@ __pycache__/
 
 # Outputs
 outputs/
-results/
+#results/

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Step 3: Solve using Symbolic Solvers
+Step 2: Solve using Symbolic Solvers
 Solves each problem using the appropriate symbolic solver based on selected SL
 """
 
@@ -109,10 +109,10 @@ def get_gold_answer(item: Dict) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Step 3: Solve problems using symbolic solvers')
-    parser.add_argument('--input_file', type=str, default='results/deepseek/LogicalDeduction/random/translation/result.json', # Adaptive/FOL/LP/SAT
-                       help='Input JSON file path (from step 2)')
-    parser.add_argument('--output_file', type=str, default='results/deepseek/LogicalDeduction/random/solve/result.json',
+    parser = argparse.ArgumentParser(description='Step 2: Solve problems using symbolic solvers')
+    parser.add_argument('--input_file', type=str, default='results/deepseek/translation/result.json',
+                       help='Input JSON file path (from step 1)')
+    parser.add_argument('--output_file', type=str, default='results/deepseek/solve/result.json',
                        help='Output JSON file path')
     
     args = parser.parse_args()
