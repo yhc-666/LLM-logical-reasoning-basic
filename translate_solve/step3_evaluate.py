@@ -31,13 +31,11 @@ def normalize_answer(answer: str) -> str:
     
     answer = str(answer).strip().upper()
     
-    # Handle True/False to A/B conversion
     if answer == 'TRUE':
         return 'A'
     elif answer == 'FALSE':
         return 'B'
     
-    # Extract letter from formats like "A)" or "(A)"
     if len(answer) >= 2:
         if answer[0] in 'ABCDEFG':
             return answer[0]
@@ -60,14 +58,12 @@ def evaluate_results(data: List[Dict]) -> Dict:
     total = len(data)
     correct = 0
     
-    # Track performance by SL
     sl_performance = {
         'LP': {'correct': 0, 'total': 0},
         'FOL': {'correct': 0, 'total': 0},
         'SAT': {'correct': 0, 'total': 0},
     }
     
-    # Track performance by dataset
     dataset_performance = {}
     
     status_counts = {
@@ -83,25 +79,20 @@ def evaluate_results(data: List[Dict]) -> Dict:
         sl = item.get('SL', 'LP')
         status = item.get('solver_status', 'unknown')
         
-        # Detect dataset for this item
         dataset = detect_dataset(item)
         
-        # Update status counts
         if status in status_counts:
             status_counts[status] += 1
         
-        # Check correctness
         is_correct = (gold == predicted) and gold != ''
         if is_correct:
             correct += 1
         
-        # Update SL performance
         if sl in sl_performance:
             sl_performance[sl]['total'] += 1
             if is_correct:
                 sl_performance[sl]['correct'] += 1
         
-        # Update dataset performance
         if dataset not in dataset_performance:
             dataset_performance[dataset] = {
                 'correct': 0,
@@ -112,23 +103,19 @@ def evaluate_results(data: List[Dict]) -> Dict:
         if is_correct:
             dataset_performance[dataset]['correct'] += 1
         
-        # Track dataset-SL combination
         if sl not in dataset_performance[dataset]['by_sl']:
             dataset_performance[dataset]['by_sl'][sl] = {'correct': 0, 'total': 0}
         dataset_performance[dataset]['by_sl'][sl]['total'] += 1
         if is_correct:
             dataset_performance[dataset]['by_sl'][sl]['correct'] += 1
         
-        # Store evaluation in item (for debugging)
         item['is_correct'] = is_correct
         item['normalized_gold'] = gold
         item['normalized_predicted'] = predicted
         item['detected_dataset'] = dataset
     
-    # Calculate overall accuracy
     accuracy = (correct / total * 100) if total > 0 else 0
     
-    # Calculate SL-specific accuracies
     sl_accuracies = {}
     for sl, perf in sl_performance.items():
         if perf['total'] > 0:
@@ -136,7 +123,6 @@ def evaluate_results(data: List[Dict]) -> Dict:
         else:
             sl_accuracies[sl] = 0
     
-    # Calculate dataset-specific accuracies
     dataset_accuracies = {}
     for dataset, perf in dataset_performance.items():
         if perf['total'] > 0:
@@ -164,7 +150,6 @@ def format_evaluation_report(evaluation: Dict) -> str:
     report.append("=" * 60)
     report.append("")
     
-    # Overall performance
     report.append("OVERALL PERFORMANCE:")
     report.append("-" * 30)
     report.append(f"Total problems: {evaluation['total']}")
@@ -195,33 +180,26 @@ def main():
     
     args = parser.parse_args()
     
-    # Load data
     print(f"Loading results from {args.input_file}...")
     data = load_data(args.input_file)
     print(f"Loaded {len(data)} results")
     
-    # Get dataset statistics
     dataset_stats = get_dataset_statistics(data)
     print("\nDataset distribution in input:")
     for dataset, count in dataset_stats.items():
         if count > 0:
             print(f"  {dataset}: {count} samples")
     
-    # Evaluate
     print("\nEvaluating results...")
     evaluation = evaluate_results(data)
     
-    # Format report
     report = format_evaluation_report(evaluation)
     
-    # Print report to console
     print("\n" + report)
     
-    # Save report
     print(f"\nSaving evaluation report to {args.output_file}...")
     save_evaluation(args.output_file, report)
     
-    # Optionally save detailed results
     if args.save_detailed:
         detailed_file = args.output_file.replace('.txt', '_detailed.json')
         print(f"Saving detailed results to {detailed_file}...")
