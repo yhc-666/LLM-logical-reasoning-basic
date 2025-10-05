@@ -64,11 +64,11 @@ python translate_solve/step3_evaluate.py
 
 ## Datasets
 
-| Dataset | Size | Description |
-|---------|------|-------------|
-| **ProofWriter** | 600 | Multi-step deductive reasoning |
-| **ProntoQA** | 500 | Ontological reasoning |
-| **LogicalDeduction** | 300 | Constraint-based logical puzzles |
+| Dataset | Size |
+|---------|------|
+| **ProofWriter** |
+| **ProntoQA** | 500 |
+| **LogicalDeduction** | 300 |
 
 ### Download ProofWriter with Different Depths
 ```bash
