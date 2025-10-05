@@ -474,7 +474,7 @@ def main():
     parser.add_argument('--sl_selection', type=str, default='LP',
                        choices=['LP', 'FOL', 'SAT'],
                        help='Symbolic language to use for all problems (LP/FOL/SAT)')
-    parser.add_argument('--openai_api_key', type=str, default='sk-81c7577b681e483dbbb2b5e466db3688',
+    parser.add_argument('--openai_api_key', type=str, default='***',
                        help='OpenAI API key')
     parser.add_argument('--openai_base_url', type=str, default='https://api.deepseek.com/v1',
                        help='OpenAI API base URL')
