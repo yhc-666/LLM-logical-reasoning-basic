@@ -1,16 +1,12 @@
-# Official implementation of **"Adaptive Translation for LLM Logical Reasoning"**.
+# Symbolic Language Translation for LLM Logical Reasoning
 
 ## Overview
 
-This framework enhances logical reasoning capabilities by adaptively selecting the optimal symbolic language (Logic Programming, First-Order Logic, or SAT) for each problem and leveraging specialized symbolic solvers. 
+This framework enhances logical reasoning capabilities by translating natural language problems into symbolic languages (Logic Programming, First-Order Logic, or SAT) and leveraging specialized symbolic solvers to achieve accurate reasoning.
 
 ## Installation
 
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/adaptive-trans.git
-cd adaptive-trans
-
 # Install dependencies
 pip install -r requirements.txt
 
@@ -18,75 +14,67 @@ pip install -r requirements.txt
 chmod +x solver_engine/src/symbolic_solvers/fol_solver/../Prover9/bin/*
 ```
 
+## Project Structure
+
+```
+adaptive-trans/
+├── translate_solve/           # Main pipeline scripts
+│   ├── step1_translate.py    # Translate to symbolic language
+│   ├── step2_solve.py        # Execute symbolic solvers
+│   ├── step3_evaluate.py     # Evaluate results
+│   └── utils/                
+│       ├── llm_helper.py     # LLM API wrapper
+│       └── dataset_detector.py 
+│
+├── solver_engine/            # Symbolic solver implementations
+│   └── src/
+│       └── symbolic_solvers/
+│           ├── pyke_solver/    
+│           ├── fol_solver/   
+│           └── z3_solver/  
+│
+├── data/                     # Datasets
+│   ├── ProofWriter/         
+│   ├── ProntoQA/           
+│   ├── LogicalDeduction/   
+│   └── dataset_download.py # Dataset download script
+│
+├── results/                 # Output directory
+├── requirements.txt         
+└── README.md               
+```
+
 ## Quick Start
 
 ### Complete Pipeline
 
+Run the 3-step pipeline to solve logical reasoning problems:
+
 ```bash
-# 1. Select optimal symbolic language for each problem
-python adaptive_solver/step1_select_sl.py \
-    --dataset ProofWriter \
-    --input_file data/ProofWriter/dev.json \
-    --output_file results/ProofWriter/select_sl/result.json \
-    --model gpt-4
+# Step 1: Translate natural language to symbolic language (LP/FOL/SAT)
+python translate_solve/step1_translate.py
 
-# 2. Translate to selected symbolic language
-python adaptive_solver/step2_translate.py \
-    --dataset ProofWriter \
-    --input_file results/ProofWriter/select_sl/result.json \
-    --output_file results/ProofWriter/translation/result.json \
-    --model gpt-4
+# Step 2: Execute symbolic solvers
+python translate_solve/step2_solve.py
 
-# 3. Execute symbolic solvers
-python adaptive_solver/step3_solve.py \
-    --dataset ProofWriter \
-    --input_file results/ProofWriter/translation/result.json \
-    --output_file results/ProofWriter/solve/result.json
-
-# 4. Evaluate results
-python adaptive_solver/step4_evaluate.py \
-    --input_file results/ProofWriter/solve/result.json \
-    --output_file results/ProofWriter/evaluation.txt
+# Step 3: Evaluate results
+python translate_solve/step3_evaluate.py
 ```
 
 
-
-## Key Components
-
-### 1. Adaptive SL Selection (`step1_select_sl.py`)
-- Analyzes problem structure (predicates, quantifiers, constraints)
-- Provides selection reasoning for interpretability
-- Supports batch processing with progress tracking
-
-### 2. Translation Engine (`step2_translate.py`)
-- Template-based translation with placeholder substitution
-- Dataset-specific prompt engineering
-- Handles complex logical constructs (implications, quantifiers, predicates)
-
-### 3. Solver Integration (`step3_solve.py`)
-- Unified interface to multiple symbolic solvers
-- Automatic error handling and fallback mechanisms
-- Detailed execution statistics and reasoning traces
-
-### 4. Evaluation Framework (`step4_evaluate.py`)
-- Per-dataset and per-SL accuracy metrics
-- Error analysis (parsing, execution, translation)
-- Comparative performance reports
-
 ## Datasets
 
-| Dataset | Size |
-|---------|------|
-| **ProofWriter** | 600 |
-| **ProntoQA** | 500 |
-| **LogicalDeduction** | 300 |
+| Dataset | Size | Description |
+|---------|------|-------------|
+| **ProofWriter** | 600 | Multi-step deductive reasoning |
+| **ProntoQA** | 500 | Ontological reasoning |
+| **LogicalDeduction** | 300 | Constraint-based logical puzzles |
 
-### ProofWriter Download with Depth 0-5
+### Download ProofWriter with Different Depths
 ```bash
 python data/dataset_download.py
 ```
 
-
 ## Acknowledgments
-We thank the developers of LogicLM for their excellent symbolic reasoning tools.
 
+- Thanks to LogicLM for symbolic reasoning tools
